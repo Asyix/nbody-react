@@ -1,12 +1,10 @@
-import NBodySimulation from "./components/NBodySimulation";
 import Controls from "./components/Controls";
 
 export default function App() {
     return (
         <div className="container">
-            <h1>Simulation N-Body</h1>
-            <Controls />
-            <NBodySimulation />
+            <h1>Gravity Simulator</h1>
+            <Controls/>
         </div>
     );
 }
