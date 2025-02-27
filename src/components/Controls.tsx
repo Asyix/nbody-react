@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
-import { Canvas } from "@react-three/fiber";
-import { OrbitControls, Sphere } from "@react-three/drei";
+import { Canvas, useThree } from "@react-three/fiber";
+import { Circle } from "@react-three/drei";
 
 export interface Body {
     x: number;
@@ -11,11 +11,13 @@ export interface Body {
 }
 
 export default function Controls() {
-    const [numBodies, setNumBodies] = useState(5);
-    const [gravity, setGravity] = useState(6.674e-11);
+    const [numBodies, setNumBodies] = useState(300);
+    const [gravity, setGravity] = useState(1);
     const [bodies, setBodies] = useState<Body[]>([]);
     const [isRunning, setIsRunning] = useState(false);
+    const [zoomSlider, setZoomSlider] = useState(50); // Slider value (0-100)
     const wsRef = useRef<WebSocket | null>(null);
+    const cameraRef = useRef<any>(null); // Reference to the camera
 
     useEffect(() => {
         if (!wsRef.current) {
@@ -27,12 +29,9 @@ export default function Controls() {
             wsRef.current.onerror = (error) => console.error("⚠️ WebSocket error:", error);
             wsRef.current.onmessage = (event) => {
                 try {
-                    console.log(event.data);
                     const receivedData = JSON.parse(event.data);
                     if (Array.isArray(receivedData)) {
-                        setBodies(() => {
-                            return receivedData;
-                        });
+                        setBodies(() => receivedData);
                     } else {
                         console.error("Invalid data format received from WebSocket:", receivedData);
                     }
@@ -41,13 +40,15 @@ export default function Controls() {
                 }
             };
         }
-    }, [bodies, isRunning]);
-
-    
+        // Update the camera zoom dynamically when the slider changes
+        if (cameraRef.current) {
+            cameraRef.current.zoom = zoomLevel;
+            cameraRef.current.updateProjectionMatrix(); // Required to apply zoom changes
+        }
+    }, [bodies, isRunning, zoomSlider]);
 
     const sendMessage = (message: { action: string; numBodies?: number; gravity?: number }) => {
         if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-            console.log("🚀 Sending message:", message);
             wsRef.current.send(JSON.stringify(message));
         } else {
             console.error("❌ WebSocket not open, unable to send:", message);
@@ -59,11 +60,18 @@ export default function Controls() {
         setIsRunning(true);
     };
 
+    const updateSimulation = () => {
+        sendMessage({ action: "update", numBodies, gravity });
+    }
+
     const stopSimulation = () => {
         sendMessage({ action: "stop" });
         setIsRunning(false);
         setBodies([]);
     };
+
+    // Convert slider value (0-100) to zoom range (5-50)
+    const zoomLevel = 5 + (zoomSlider / 100) * 45;
 
     return (
         <>
@@ -90,24 +98,37 @@ export default function Controls() {
                     />
                 </label>
 
+                {/* Zoom Slider */}
+                <label>
+                    Zoom :
+                    <input 
+                        type="range" 
+                        min="0" max="100" step="1"
+                        value={zoomSlider} 
+                        onChange={(e) => setZoomSlider(parseInt(e.target.value))} 
+                    />
+                    <span>{Math.round(zoomLevel)}</span>
+                </label>
+
                 <button onClick={startSimulation}>Démarrer</button>
+                {isRunning ? <button onClick={updateSimulation} style={{ marginLeft: "10px" }}>M-à-j</button> : null}
                 <button onClick={stopSimulation} style={{ marginLeft: "10px" }}>Arrêter</button>
             </div>
 
             <div style={{ width: "100vw", height: "100vh", overflow: "hidden" }}>
-                <Canvas camera={{ position: [0, 0, 60], fov: 60 }}>
+                <Canvas orthographic camera={{ position: [0, 0, 10], zoom: zoomLevel }} onCreated={({ camera }) => (cameraRef.current = camera)}>
                     <ambientLight intensity={0.5} />
-                    <pointLight position={[10, 10, 10]} />
-                    <OrbitControls />
 
                     {bodies.map((body, index) => (
-                        <Sphere key={index} args={[10, 32, 32]} position={[body.x/80, body.y/80, 0]}>
-                            <meshStandardMaterial color="blue" />
-                        </Sphere>
+                        <Circle key={index} args={[0.2, 32]} position={[body.x / 80, body.y / 80, 0]}>
+                            <meshBasicMaterial color="blue" />
+                        </Circle>
                     ))}
-                <Sphere args={[0.1, 32, 32]} position={[10, 7, 0]}>
-                    <meshStandardMaterial color="red" />
-                </Sphere>
+                    
+                    {/* Example of a stationary red object */}
+                    <Circle args={[0.2, 32]} position={[0, 0, 0]}>
+                        <meshBasicMaterial color="red" />
+                    </Circle>
                 </Canvas>
             </div>
         </>
