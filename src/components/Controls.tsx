@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Canvas, useThree } from "@react-three/fiber";
+import { Camera, Canvas } from "@react-three/fiber";
 import { Circle } from "@react-three/drei";
 
 export interface Body {
@@ -17,7 +17,7 @@ export default function Controls() {
     const [isRunning, setIsRunning] = useState(false);
     const [zoomSlider, setZoomSlider] = useState(50); // Slider value (0-100)
     const wsRef = useRef<WebSocket | null>(null);
-    const cameraRef = useRef<any>(null); // Reference to the camera
+    const cameraRef = useRef<Camera | null>(null); // Reference to the camera
 
     useEffect(() => {
         if (!wsRef.current) {
@@ -31,6 +31,7 @@ export default function Controls() {
                 try {
                     const receivedData = JSON.parse(event.data);
                     if (Array.isArray(receivedData)) {
+                        //console.log(receivedData)
                         setBodies(() => receivedData);
                     } else {
                         console.error("Invalid data format received from WebSocket:", receivedData);
@@ -84,7 +85,7 @@ export default function Controls() {
                         type="number" 
                         value={numBodies} 
                         min="1"
-                        onChange={(e) => setNumBodies(parseInt(e.target.value))} 
+                        onChange={(e) => setNumBodies(e.target.value ? parseInt(e.target.value) : 0)} 
                     />
                 </label>
 
@@ -94,7 +95,7 @@ export default function Controls() {
                         type="number" 
                         value={gravity} 
                         step="1e-11" 
-                        onChange={(e) => setGravity(parseFloat(e.target.value))} 
+                        onChange={(e) => setGravity(e.target.value ? parseFloat(e.target.value) : 0)} 
                     />
                 </label>
 
@@ -120,7 +121,7 @@ export default function Controls() {
                     <ambientLight intensity={0.5} />
 
                     {bodies.map((body, index) => (
-                        <Circle key={index} args={[0.2, 32]} position={[body.x / 80, body.y / 80, 0]}>
+                        <Circle key={index} args={[body.mass/50, 32]} position={[body.x / 80, body.y / 80, 0]}>
                             <meshBasicMaterial color="blue" />
                         </Circle>
                     ))}
