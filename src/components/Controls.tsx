@@ -52,16 +52,34 @@ export default function Controls() {
         if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
             wsRef.current.send(JSON.stringify(message));
         } else {
-            console.error("❌ WebSocket not open, unable to send:", message);
+            console.log("❌ WebSocket not open, unable to send:", message);
         }
     };
 
     const startSimulation = () => {
+        if (numBodies <= 0 || !numBodies) {
+            setNumBodies(0);
+        }
+        if (gravity <= 0 || !gravity) {
+            setGravity(0);
+        }
+        if (numBodies >= 1000) {
+            setNumBodies(1000);
+        }
         sendMessage({ action: "start", numBodies, gravity });
         setIsRunning(true);
     };
 
     const updateSimulation = () => {
+        if (numBodies <= 0 || !numBodies) {
+            setNumBodies(0);
+        }
+        if (gravity <= 0 || !gravity) {
+            setGravity(0);
+        }
+        if (numBodies >= 1000) {
+            setNumBodies(1000);
+        }
         sendMessage({ action: "update", numBodies, gravity });
     }
 
@@ -71,12 +89,34 @@ export default function Controls() {
         setBodies([]);
     };
 
+    const handleNumBodiesChange = (e : React.ChangeEvent<HTMLInputElement>) => {
+        const value = parseInt(e.target.value, 10) ?? 0;
+        if (value <= 0) {
+            setNumBodies(0);
+        } else if (value >= 1000) {
+            setNumBodies(1000);
+        } else {
+            setNumBodies(value);
+        }
+    }
+
+    const handleGravityChange = (e : React.ChangeEvent<HTMLInputElement>) => {
+        const value = parseInt(e.target.value, 10) ?? 0;
+        if (value <= 0) {
+            setGravity(0);
+        } else if (value >= 1000) {
+            setGravity(1000);
+        } else {
+            setGravity(value);
+        }
+    }
+
     // Convert slider value (0-100) to zoom range (5-50)
     const zoomLevel = 5 + (zoomSlider / 100) * 45;
 
     return (
         <>
-            <div className="controls">
+            <div className="controls" style={{ paddingTop: "50px" }}>
                 <h2>Paramètres de la simulation</h2>
 
                 <label>
@@ -85,7 +125,7 @@ export default function Controls() {
                         type="number" 
                         value={numBodies} 
                         min="1"
-                        onChange={(e) => setNumBodies(e.target.value ? parseInt(e.target.value) : 0)} 
+                        onChange={(e) => handleNumBodiesChange(e)} 
                     />
                 </label>
 
@@ -95,7 +135,7 @@ export default function Controls() {
                         type="number" 
                         value={gravity} 
                         step="1e-11" 
-                        onChange={(e) => setGravity(e.target.value ? parseFloat(e.target.value) : 0)} 
+                        onChange={(e) => handleGravityChange(e)} 
                     />
                 </label>
 
@@ -111,12 +151,18 @@ export default function Controls() {
                     <span>{Math.round(zoomLevel)}</span>
                 </label>
 
-                <button onClick={startSimulation}>Démarrer</button>
-                {isRunning ? <button onClick={updateSimulation} style={{ marginLeft: "10px" }}>M-à-j</button> : null}
+                <button onClick={() => {
+                    startSimulation();
+                    document.getElementById("canvas-container")?.scrollIntoView({ behavior: "smooth" });
+                }}>Démarrer</button>
+                {isRunning ? <button onClick={() => {
+                    updateSimulation();
+                    document.getElementById("canvas-container")?.scrollIntoView({ behavior: "smooth" });
+                }} style={{ marginLeft: "10px" }}>M-à-j</button> : null}
                 <button onClick={stopSimulation} style={{ marginLeft: "10px" }}>Arrêter</button>
             </div>
 
-            <div style={{ width: "100vw", height: "100vh", overflow: "hidden" }}>
+            <div style={{ width: "100vw", height: "100vh", overflow: "hidden" }} id="canvas-container">
                 <Canvas orthographic camera={{ position: [0, 0, 10], zoom: zoomLevel }} onCreated={({ camera }) => (cameraRef.current = camera)}>
                     <ambientLight intensity={0.5} />
 
