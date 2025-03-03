@@ -1,10 +1,12 @@
 # Launch project locally
 
 From root directory : 
-npm install
-npm run dev
+
+npm install && npm run dev
 
 Be sure to make the project run on port 5173.
+
+Backend URL for WS communication is set in src/components/Controls.tsx
 
 # React + TypeScript + Vite
 
