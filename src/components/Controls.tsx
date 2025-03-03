@@ -21,7 +21,7 @@ export default function Controls() {
 
     useEffect(() => {
         if (!wsRef.current) {
-            wsRef.current = new WebSocket(import.meta.env.VITE_BACKEND_URL);
+            wsRef.current = new WebSocket("ws://localhost:8080/simulation");
             wsRef.current.onopen = () => console.log("✅ WebSocket connected");
         }
         if (wsRef.current && isRunning) {
